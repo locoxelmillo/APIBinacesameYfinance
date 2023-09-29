@@ -1,0 +1,41 @@
+import pandas as pd
+import numpy as np
+from binance.client import Client
+from backtesting import Backtest, Strategy
+from backtesting.lib import crossover,plot_heatmaps
+import yfinance as yf
+
+
+
+def BinanceBTpy(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1MINUTE, time=120):
+    # Configurar las credenciales de la API de Binance
+    api_key = 'TU_API_KEY'
+    api_secret = 'TU_API_SECRET'
+    client = Client(api_key, api_secret)
+    
+    # Calcular las fechas de inicio y fin
+    end_date = datetime.now()
+    start_date = end_date - timedelta(minutes=time)
+    # Convertir las fechas al formato requerido por la API
+    start_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
+    end_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
+    DUT= np.array(client.get_historical_klines(symbol, interval, start_str=start_str, end_str=end_str) )
+    df = pd.DataFrame(DUT.reshape(-1,12),dtype=float, columns = ('Date','Open',                                                                    
+                                                                        'High',
+                                                                        'Low',
+                                                                        'Close',
+                                                                        'Volume',
+                                                                        'Close time',
+                                                                        'Quote asset volume',
+                                                                        'Number of trades',
+                                                                        'Taker buy base asset volume',
+                                                                        'Taker buy quote asset volume',
+                                                                        'Ignore'))
+    
+    df = df.drop(['Close time','Quote asset volume','Number of trades','Taker buy base asset volume','Taker buy quote asset volume', 'Ignore'], axis=1)
+    df['Adj Close'] = df['Close'].copy()
+    df = df[['Date','Open','High','Low','Close','Adj Close', 'Volume']]
+    df['Date'] = pd.to_datetime(df['Date'], unit='ms')
+    df.set_index("Date", inplace=True)
+
+    return df
