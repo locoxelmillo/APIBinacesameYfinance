@@ -15,7 +15,7 @@ def BinanceBTpy(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1MINUTE, time=1
     
     # Calcular las fechas de inicio y fin
     end_date = datetime.now()
-    start_date = end_date - timedelta(minutes=time)
+    start_date = end_date - timedelta(minutes=time*int(interval.rstrip('m')))
     # Convertir las fechas al formato requerido por la API
     start_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
     end_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
