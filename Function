@@ -7,21 +7,24 @@ import yfinance as yf
 
 
 
-def BinanceBTpy(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1MINUTE, time=120):
+def BinanceBTpy(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1MINUTE, time=999):
     # Configurar las credenciales de la API de Binance
     api_key = 'TU_API_KEY'
     api_secret = 'TU_API_SECRET'
     client = Client(api_key, api_secret)
     
     # Calcular las fechas de inicio y fin
-    end_date = datetime.now()
-    start_date = end_date - timedelta(minutes=time*int(interval.rstrip('m')))
+    url = "https://api.binance.com/api/v3/time"
+    response = requests.get(url)
+    server_time_unix = response.json()["serverTime"] / 1000  # Convertir de milisegundos a segundos
+    end_date_str = datetime.utcfromtimestamp(server_time_unix).strftime('%Y-%m-%d %H:%M:%S')
+    end_date = datetime.strptime(end_date_str, '%Y-%m-%d %H:%M:%S')
+    start_date = end_date - timedelta(minutes=(time)*(int(interval.rstrip('m'))))
     # Convertir las fechas al formato requerido por la API
     start_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
     end_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
     DUT= np.array(client.get_historical_klines(symbol, interval, start_str=start_str, end_str=end_str) )
-    df = pd.DataFrame(DUT.reshape(-1,12),dtype=float, columns = ('Date','Open',                                                                    
-                                                                        'High',
+    df = pd.DataFrame(DUT.reshape(-1,12),dtype=float, columns = ('Date','Open',                                                                    'High',
                                                                         'Low',
                                                                         'Close',
                                                                         'Volume',
