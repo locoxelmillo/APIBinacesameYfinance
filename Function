@@ -19,25 +19,35 @@ def BinanceBTpy(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1MINUTE, time=9
     server_time_unix = response.json()["serverTime"] / 1000  # Convertir de milisegundos a segundos
     end_date_str = datetime.utcfromtimestamp(server_time_unix).strftime('%Y-%m-%d %H:%M:%S')
     end_date = datetime.strptime(end_date_str, '%Y-%m-%d %H:%M:%S')
-    start_date = end_date - timedelta(minutes=(time)*(int(interval.rstrip('m'))))
+    
+    # Ajuste para calcular las fechas de inicio y fin según la temporalidad
+    if interval.endswith('m'):  # Si es una temporalidad en minutos
+        start_date = end_date - timedelta(minutes=(time)*(int(interval.rstrip('m'))))
+    elif interval.endswith('h'):  # Si es una temporalidad en horas
+        start_date = end_date - timedelta(hours=(time)*(int(interval.rstrip('h'))))
+    elif interval.endswith('d'):  # Si es una temporalidad en días
+        start_date = end_date - timedelta(days=(time)*(int(interval.rstrip('d'))))
+    elif interval.endswith('w'):  # Si es una temporalidad en semanas
+        start_date = end_date - timedelta(weeks=(time)*(int(interval.rstrip('w'))))
+    
     # Convertir las fechas al formato requerido por la API
     start_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
     end_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
-    DUT= np.array(client.get_historical_klines(symbol, interval, start_str=start_str, end_str=end_str) )
-    df = pd.DataFrame(DUT.reshape(-1,12),dtype=float, columns = ('Date','Open',                                                                    'High',
-                                                                        'Low',
-                                                                        'Close',
-                                                                        'Volume',
-                                                                        'Close time',
-                                                                        'Quote asset volume',
-                                                                        'Number of trades',
-                                                                        'Taker buy base asset volume',
-                                                                        'Taker buy quote asset volume',
-                                                                        'Ignore'))
     
-    df = df.drop(['Close time','Quote asset volume','Number of trades','Taker buy base asset volume','Taker buy quote asset volume', 'Ignore'], axis=1)
+    DUT = np.array(client.get_historical_klines(symbol, interval, start_str=start_str, end_str=end_str))
+    df = pd.DataFrame(DUT.reshape(-1, 12), dtype=float, columns=('Date', 'Open', 'High',
+                                                                 'Low', 'Close',
+                                                                 'Volume', 'Close time',
+                                                                 'Quote asset volume',
+                                                                 'Number of trades',
+                                                                 'Taker buy base asset volume',
+                                                                 'Taker buy quote asset volume',
+                                                                 'Ignore'))
+
+    df = df.drop(['Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume',
+                  'Taker buy quote asset volume', 'Ignore'], axis=1)
     df['Adj Close'] = df['Close'].copy()
-    df = df[['Date','Open','High','Low','Close','Adj Close', 'Volume']]
+    df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
     df['Date'] = pd.to_datetime(df['Date'], unit='ms')
     df.set_index("Date", inplace=True)
 
