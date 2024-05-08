@@ -2,38 +2,50 @@ import pandas as pd
 import numpy as np
 from binance.client import Client
 from backtesting import Backtest, Strategy
-from backtesting.lib import crossover,plot_heatmaps
+from backtesting.lib import crossover, plot_heatmaps
 import yfinance as yf
-
-
+from datetime import datetime, timedelta
+import requests
 
 def BinanceBTpy(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1MINUTE, time=999):
-    # Configurar las credenciales de la API de Binance
-    api_key = 'TU_API_KEY'
-    api_secret = 'TU_API_SECRET'
+    """
+    Retrieves historical price data from Binance API.
+
+    Args:
+        symbol (str): The trading pair symbol (e.g., 'BTCUSDT').
+        interval (str): The time interval for the data (e.g., '1m' for 1 minute, '1h' for 1 hour, etc.).
+        time (int): The duration of historical data to retrieve, in intervals specified by the 'interval' parameter.
+
+    Returns:
+        pandas.DataFrame: DataFrame containing historical price data.
+    """
+    # Set up Binance API credentials
+    api_key = 'YOUR_API_KEY'
+    api_secret = 'YOUR_API_SECRET'
     client = Client(api_key, api_secret)
-    
-    # Calcular las fechas de inicio y fin
+
+    # Calculate start and end dates
     url = "https://api.binance.com/api/v3/time"
     response = requests.get(url)
-    server_time_unix = response.json()["serverTime"] / 1000  # Convertir de milisegundos a segundos
+    server_time_unix = response.json()["serverTime"] / 1000  # Convert from milliseconds to seconds
     end_date_str = datetime.utcfromtimestamp(server_time_unix).strftime('%Y-%m-%d %H:%M:%S')
     end_date = datetime.strptime(end_date_str, '%Y-%m-%d %H:%M:%S')
-    
-    # Ajuste para calcular las fechas de inicio y fin según la temporalidad
-    if interval.endswith('m'):  # Si es una temporalidad en minutos
+
+    # Adjust start and end dates according to the interval
+    if interval.endswith('m'):  # If interval is in minutes
         start_date = end_date - timedelta(minutes=(time)*(int(interval.rstrip('m'))))
-    elif interval.endswith('h'):  # Si es una temporalidad en horas
+    elif interval.endswith('h'):  # If interval is in hours
         start_date = end_date - timedelta(hours=(time)*(int(interval.rstrip('h'))))
-    elif interval.endswith('d'):  # Si es una temporalidad en días
+    elif interval.endswith('d'):  # If interval is in days
         start_date = end_date - timedelta(days=(time)*(int(interval.rstrip('d'))))
-    elif interval.endswith('w'):  # Si es una temporalidad en semanas
-        start_date = end_date - timedelta(weeks=(time)*(int(interval.rstrip('w'))))
-    
-    # Convertir las fechas al formato requerido por la API
+    elif interval.endswith('w'):  # If interval is in weeks
+        start_date = end_date - timedelta(weeks=(time)*(int(interval.rstrip('w')))))
+
+    # Convert dates to the format required by the API
     start_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
     end_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
-    
+
+    # Retrieve data from Binance API
     DUT = np.array(client.get_historical_klines(symbol, interval, start_str=start_str, end_str=end_str))
     df = pd.DataFrame(DUT.reshape(-1, 12), dtype=float, columns=('Date', 'Open', 'High',
                                                                  'Low', 'Close',
@@ -44,6 +56,7 @@ def BinanceBTpy(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1MINUTE, time=9
                                                                  'Taker buy quote asset volume',
                                                                  'Ignore'))
 
+    # Clean up DataFrame
     df = df.drop(['Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume',
                   'Taker buy quote asset volume', 'Ignore'], axis=1)
     df['Adj Close'] = df['Close'].copy()
